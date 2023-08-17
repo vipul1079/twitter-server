@@ -27,7 +27,9 @@ export async function initServer() {
       Query: {
         ...User.resolvers.queries,
       },
+      
     },
+    introspection:false,
   });
   await graphqlServer.start();
 
