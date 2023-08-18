@@ -60,10 +60,10 @@ const queries = {
     return userToken;
   },
   getCurrentUser: async(parent:any,args:any , ctx:GraphqlContext)=>{
+    
     const id = ctx.user?.id;
     if(!id) return null;
-
-    const user = await prismaClient.user.findUnique({where:{id}});
+    const user = await prismaClient.user.findUnique({where:{id:id}});
     return user;
   }
 };
