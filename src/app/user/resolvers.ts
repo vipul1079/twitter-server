@@ -1,7 +1,8 @@
 import axios from "axios";
-import { prismaClient } from "../../clients/db";
+import { prisma } from "../../clients/db";
 import JWTservice from "../../services/jwt";
 import { GraphqlContext } from "../../interfaces";
+import { User } from "@prisma/client";
 interface GoogleTokenResult {
   iss?: string;
   azp?: string;
@@ -23,49 +24,56 @@ interface GoogleTokenResult {
   typ?: string;
 }
 
-
 const queries = {
   verifyGoogleToken: async (parent: any, { token }: { token: string }) => {
-    const goolgeToken=token;
-    const googleOauthURL=new URL("https://oauth2.googleapis.com/tokeninfo");
-    googleOauthURL.searchParams.set("id_token" , goolgeToken);
+    const goolgeToken = token;
+    const googleOauthURL = new URL("https://oauth2.googleapis.com/tokeninfo");
+    googleOauthURL.searchParams.set("id_token", goolgeToken);
 
-    const {data}= await axios.get<GoogleTokenResult>(googleOauthURL.toString(),{
-      responseType: "json"
-    });
-    
-    const user = await prismaClient.user.findUnique({
-      where:{email:data.email},
+    const { data } = await axios.get<GoogleTokenResult>(
+      googleOauthURL.toString(),
+      {
+        responseType: "json",
+      }
+    );
+
+    const user = await prisma.user.findUnique({
+      where: { email: data.email },
     });
 
-    if(!user){
-      await prismaClient.user.create({
-        data:{
-          email:data.email,
-          firstName:data.given_name,
-          lastName:data.family_name,
-          profileImageURL:data.picture,
-        }
+    if (!user) {
+      await prisma.user.create({
+        data: {
+          email: data.email,
+          firstName: data.given_name,
+          lastName: data.family_name,
+          profileImageURL: data.picture,
+        },
       });
-
     }
-    const userInDb = await prismaClient.user.findUnique({where:{email:data.email}})
-    
-    if(!userInDb)throw new Error("user with email not found");
-    
-    const userToken =JWTservice.generateTokenForUser(userInDb);
-    
-    
+    const userInDb = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (!userInDb) throw new Error("user with email not found");
+
+    const userToken = JWTservice.generateTokenForUser(userInDb);
 
     return userToken;
   },
-  getCurrentUser: async(parent:any,args:any , ctx:GraphqlContext)=>{
-    
+  getCurrentUser: async (parent: any, args: any, ctx: GraphqlContext) => {
     const id = ctx.user?.id;
-    if(!id) return null;
-    const user = await prismaClient.user.findUnique({where:{id:id}});
+    if (!id) return null;
+    const user = await prisma.user.findUnique({ where: { id: id } });
     return user;
-  }
+  },
 };
 
-export const resolvers = { queries };
+const extraResolver = {
+  User: {
+    tweets: (parent: User) =>
+      prisma.tweet.findMany({ where: { author: { id: parent.id } } }),
+  },
+};
+
+export const resolvers = { queries, extraResolver };
