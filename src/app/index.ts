@@ -5,9 +5,10 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import { User } from "./user";
 import { Tweet } from "./tweet";
-
 import { GraphqlContext } from "../interfaces";
 import JWTService from "../services/jwt";
+
+
 
 export async function initServer() {
   const app = express();
